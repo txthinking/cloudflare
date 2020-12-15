@@ -1,0 +1,89 @@
+#!/bin/bash
+
+help()
+{
+    echo -e "\ncloudflare [command options] [arguments...]"
+    echo -e "\t-e, --email <email>"
+    echo -e "\t-k, --key <global API key>"
+    echo -e "\t-z, --zone <zone id>"
+    echo -e "\t-d, --domain <domain>"
+    echo -e "\t-4, --ipv4 <IP>"
+    echo -e "\t-6, --ipv6 <IP>"
+    echo -e "\nv20201216"
+    echo -e "https://github.com/txthinking/cloudflare\n"
+}
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -e|--email) email="$2"; shift ;;
+        -k|--key) key="$2"; shift ;;
+        -z|--zone) zone="$2"; shift ;;
+        -d|--domain) domain="$2"; shift ;;
+        -4|--ipv4) ipv4="$2"; shift ;;
+        -6|--ipv6) ipv6="$2"; shift ;;
+        *) echo "Unknown parameter passed: $1"; help; exit 1 ;;
+    esac
+    shift
+done
+
+if [ -z "$email" -o -z "$key" -o -z "$zone" -o -z "$domain" ]
+then
+    help
+    exit
+fi
+
+if [ ! -z "$ipv4" ]
+then
+    l=`curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone/dns_records?name=$domain&type=A" \
+         -H "X-Auth-Email: $email" \
+         -H "X-Auth-Key: $key" \
+         -H "Content-Type: application/json" \
+         | jq -r .result[].id`
+    for id in $l
+    do
+        curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/$zone/dns_records/$id" \
+         -H "X-Auth-Email: $email" \
+         -H "X-Auth-Key: $key" \
+         -H "Content-Type: application/json" \
+         > /dev/null
+    done
+    s=`curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$zone/dns_records" \
+         -H "X-Auth-Email: $email" \
+         -H "X-Auth-Key: $key" \
+         -H "Content-Type: application/json" \
+         --data "{\"type\":\"A\",\"name\":\"$domain\",\"content\":\"$ipv4\",\"ttl\":1,\"proxied\":true}" \
+         | jq -r .success`
+    if [ "$s" != "true" ]
+    then
+        echo "failed"
+        exit 1
+    fi
+fi
+
+if [ ! -z "$ipv6" ]
+then
+    l=`curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone/dns_records?name=$domain&type=AAAA" \
+         -H "X-Auth-Email: $email" \
+         -H "X-Auth-Key: $key" \
+         -H "Content-Type: application/json" \
+         | jq -r .result[].id`
+    for id in $l
+    do
+        curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/$zone/dns_records/$id" \
+         -H "X-Auth-Email: $email" \
+         -H "X-Auth-Key: $key" \
+         -H "Content-Type: application/json" \
+         > /dev/null
+    done
+    s=`curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$zone/dns_records" \
+         -H "X-Auth-Email: $email" \
+         -H "X-Auth-Key: $key" \
+         -H "Content-Type: application/json" \
+         --data "{\"type\":\"AAAA\",\"name\":\"$domain\",\"content\":\"$ipv6\",\"ttl\":1,\"proxied\":true}" \
+         | jq -r .success`
+    if [ "$s" != "true" ]
+    then
+        echo "failed"
+        exit 1
+    fi
+fi
