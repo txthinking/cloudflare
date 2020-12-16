@@ -9,7 +9,7 @@ help()
     echo -e "\t-d, --domain <domain>"
     echo -e "\t-4, --ipv4 <IP>"
     echo -e "\t-6, --ipv6 <IP>"
-    echo -e "\nv20201216"
+    echo -e "\nv20201217"
     echo -e "https://github.com/txthinking/cloudflare\n"
 }
 
@@ -32,7 +32,7 @@ then
     exit
 fi
 
-if [ ! -z "$ipv4" ]
+if [ -n "$ipv4" -o -n "$ipv6" ]
 then
     l=`curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone/dns_records?name=$domain&type=A" \
          -H "X-Auth-Email: $email" \
@@ -47,21 +47,6 @@ then
          -H "Content-Type: application/json" \
          > /dev/null
     done
-    s=`curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$zone/dns_records" \
-         -H "X-Auth-Email: $email" \
-         -H "X-Auth-Key: $key" \
-         -H "Content-Type: application/json" \
-         --data "{\"type\":\"A\",\"name\":\"$domain\",\"content\":\"$ipv4\",\"ttl\":1,\"proxied\":true}" \
-         | jq -r .success`
-    if [ "$s" != "true" ]
-    then
-        echo "failed"
-        exit 1
-    fi
-fi
-
-if [ ! -z "$ipv6" ]
-then
     l=`curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone/dns_records?name=$domain&type=AAAA" \
          -H "X-Auth-Email: $email" \
          -H "X-Auth-Key: $key" \
@@ -75,6 +60,25 @@ then
          -H "Content-Type: application/json" \
          > /dev/null
     done
+fi
+
+if [ -n "$ipv4" ]
+then
+    s=`curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$zone/dns_records" \
+         -H "X-Auth-Email: $email" \
+         -H "X-Auth-Key: $key" \
+         -H "Content-Type: application/json" \
+         --data "{\"type\":\"A\",\"name\":\"$domain\",\"content\":\"$ipv4\",\"ttl\":1,\"proxied\":true}" \
+         | jq -r .success`
+    if [ "$s" != "true" ]
+    then
+        echo "failed"
+        exit 1
+    fi
+fi
+
+if [ -n "$ipv6" ]
+then
     s=`curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$zone/dns_records" \
          -H "X-Auth-Email: $email" \
          -H "X-Auth-Key: $key" \
