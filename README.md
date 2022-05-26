@@ -7,7 +7,7 @@ cloudflare cli
 ### Install via [nami](https://github.com/txthinking/nami)
 
 ```
-$ nami install github.com/txthinking/cloudflare
+$ nami install cloudflare
 ```
 
 ### Usage
