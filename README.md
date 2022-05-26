@@ -2,7 +2,7 @@
 
 cloudflare cli
 
-> Requirements: `$ nami install github.com/namipkg/jq`
+> Requirements: `$ nami install jq`
 
 ### Install via [nami](https://github.com/txthinking/nami)
 
